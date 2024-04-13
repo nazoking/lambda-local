@@ -188,6 +188,7 @@ function _executeSync(opts) {
         verboseLevel = opts.verboseLevel,
         callback = opts.callback,
         contextOverwrite = opts.contextOverwrite,
+        onInvocationEnd = opts.onInvocationEnd,
         clientContext = null;
 
     if (opts.clientContext) {
@@ -296,7 +297,8 @@ function _executeSync(opts) {
                 });
             }
         },
-        clientContext: clientContext
+        clientContext: clientContext,
+        onInvocationEnd: onInvocationEnd,
     });
 
     if(callback) context.callback = callback;

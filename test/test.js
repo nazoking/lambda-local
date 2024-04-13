@@ -384,6 +384,16 @@ describe("- Testing lambdalocal.js", function () {
                     assert.equal(data.result, "testvar");
                 });
             });
+            it('should call onInvocationEnd', function () {
+                var lambdalocal = require(lambdalocal_path);
+                lambdalocal.setLogger(winston);
+                let invocationEnded = 0
+                opts.onInvocationEnd = () => invocationEnded++
+                return lambdalocal.execute(opts).then(function (data) {
+                    assert.equal(data.result, "testvar");
+                    assert.equal(invocationEnded, 1)
+                });
+            });
             it('should be stateless', function () {
                 var lambdalocal = require(lambdalocal_path);
                 lambdalocal.setLogger(winston);
@@ -445,13 +455,17 @@ describe("- Testing lambdalocal.js", function () {
             it('should return a readable stream as `body`', function () {
                 var lambdalocal = require(lambdalocal_path);
                 lambdalocal.setLogger(winston);
+                let invocationEnded = 0
                 return lambdalocal.execute({
                     event: require(path.join(__dirname, "./events/test-event.js")),
                     lambdaPath: path.join(__dirname, "./functs/test-func-streaming.js"),
                     lambdaHandler: functionName,
                     callbackWaitsForEmptyEventLoop: false,
                     timeoutMs: timeoutMs,
-                    verboseLevel: 1
+                    verboseLevel: 1,
+                    onInvocationEnd() {
+                        invocationEnded++
+                    }
                 }).then(function (data) {
                     assert.deepEqual(
                         data.headers,
@@ -468,7 +482,13 @@ describe("- Testing lambdalocal.js", function () {
                         data.body.on("end", () => {
                             assert.deepEqual(chunks, ["foo", "bar"])
                             assert.closeTo(times[1] - times[0], 100, 50)
-                            resolve()
+
+                            assert.equal(invocationEnded, 0)
+
+                            setTimeout(() => {
+                                assert.equal(invocationEnded, 1)    
+                                resolve()
+                            }, 200)
                         });
                     })
                 })

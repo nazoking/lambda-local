@@ -19,13 +19,15 @@ function streamifyResponse(handler) {
         if (!body.headersSent) {
           body.sendHeader(metadata)
         }
+        context.__lambdaLocal.onInvocationEnd?.();
       } catch (error) {
         reject(error);
+        context.__lambdaLocal.onInvocationEnd?.(error);
       }
     });
 }
 
-class StreamingBody extends PassThrough {
+export class StreamingBody extends PassThrough {
   constructor(private readonly resolve: (metadata) => void) {
     super();
   }

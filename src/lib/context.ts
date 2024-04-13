@@ -8,6 +8,7 @@
 
 import utils = require('./utils.js');
 import mute = require('./mute.js');
+import { StreamingBody } from './streaming.js';
 
 function Context() {
     this.logger = null;
@@ -39,6 +40,7 @@ function Context() {
     this.logStreamName = 'Stream name';
     this.identity = null;
     this.clientContext = null;
+    this.onInvocationEnd = null;
 
     /*
      * callback function called after done
@@ -112,6 +114,7 @@ Context.prototype._initialize = function(options) {
         this.unmute = mute();
     }
     this.clientContext = options.clientContext;
+    this.onInvocationEnd = options.onInvocationEnd;
 
     return;
 };
@@ -149,7 +152,12 @@ Context.prototype.generate_context = function(){
         logStreamName: this.logStreamName,
         identity: this.identity,
         clientContext: this.clientContext,
-        _stopped: false
+        _stopped: false,
+
+        // INTERNAL
+        __lambdaLocal: {
+            onInvocationEnd: this.onInvocationEnd
+        },
     };
     return ctx;
 }
@@ -207,6 +215,12 @@ Context.prototype.done = function(err, message) {
         }
     }
     this.finalCallback(); //Destroy env...
+
+    const isStream = typeof message === "object" && message?.body instanceof StreamingBody
+    if (!isStream) {
+        this.onInvocationEnd?.();
+    }
+
     /*
     The finalCallback method will be instantly called if 'this.callbackWaitsForEmptyEventLoop' is False
     Otherwise, lambda-local will wait for an empty loop then call it.
